@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="index.css">
+    <title>Chat</title>
+</head>
+<body>
+<div class="gameContainer" id="game-container">
+
+</div>
+<script>
+    const socket = io();
+
+    const gameContainer = document.getElementById('game-container');
+
+    socket.on('update positions', (posList) => {
+        while (gameContainer.firstChild) { gameContainer.removeChild(gameContainer.firstChild); }
+        for (const i in posList){
+            const circle = document.createElement('span');
+            circle.className = 'circle';
+            circle.style.transform = `translate(${posList[i].x}px, ${posList[i].y}px)`;
+            gameContainer.appendChild(circle);
+        }
+    })
+
+    document.body.addEventListener('keydown', (e) => {
+        if (e.key === 's') socket.emit('move down');
+        else if (e.key === 'w') socket.emit('move up');
+        else if (e.key === 'a') socket.emit('move left');
+        else if (e.key === 'd') socket.emit('move right');
+    })
+
+</script>
+</body>
+</html>
