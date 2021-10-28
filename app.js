@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 require('dotenv').config();
-const server = require('http').createServer(app);
+const server = require('https').createServer(app);
 const helper = require('./server/helper');
 const Player = require('./server/player');
 const Lobby = require('./server/lobby');
