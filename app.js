@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+require('dotenv').config();
 const server = require('http').createServer(app);
 const helper = require('./server/helper');
 const Player = require('./server/player');
@@ -81,7 +82,7 @@ io.on('connection', async (socket) => {
 
 app.use(express.static('client'));
 
-server.listen(3000, () => {
+server.listen(process.env.PORT, () => {
     initializeLobbies();
     console.log('listening on *:3000');
 });

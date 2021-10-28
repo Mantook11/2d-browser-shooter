@@ -6,6 +6,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "dotenv": "^10.0.0",
     "eslint": "^8.1.0",
     "eslint-plugin-require-sort": "^1.2.2",
     "nodemon": "^2.0.13"
