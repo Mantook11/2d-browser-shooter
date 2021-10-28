@@ -3,10 +3,10 @@
     "express": "^4.17.1",
     "socket.io": "^4.3.1",
     "unique-names-generator": "^4.6.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "dotenv": "^10.0.0"
   },
   "devDependencies": {
-    "dotenv": "^10.0.0",
     "eslint": "^8.1.0",
     "eslint-plugin-require-sort": "^1.2.2",
     "nodemon": "^2.0.13"
