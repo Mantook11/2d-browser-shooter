@@ -1,6 +1,6 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
-require('dotenv').config();
 const server = require('http').createServer(app);
 const helper = require('./server/helper');
 const Player = require('./server/player');
@@ -8,7 +8,7 @@ const Lobby = require('./server/lobby');
 const game = require('./server/game');
 const {uniqueNamesGenerator, adjectives, animals} = require('unique-names-generator');
 const {Server} = require('socket.io');
-const { v4: uuidv4 } = require('uuid');
+const {v4: uuidv4} = require('uuid');
 const io = new Server(server);
 
 const SOCKET_LIST = {};
@@ -25,11 +25,11 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/client/index.html');
 });
 
-setInterval(function(){
-    for (const i in LOBBY_LIST){
+setInterval(function () {
+    for (const i in LOBBY_LIST) {
         io.to(i).emit('update positions', LOBBY_LIST[i].position);
     }
-}, 1/60);
+}, 10);
 
 io.on('connection', async (socket) => {
     //Generate unique id for socket

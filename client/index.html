@@ -6,31 +6,49 @@
     <title>Chat</title>
 </head>
 <body>
-<div class="gameContainer" id="game-container">
+<canvas width="480" height="320" id="game-container">
 
-</div>
+</canvas>
 <script>
     const socket = io();
+    const radius = 5;
+    const pi2 = Math.PI * 2;
 
-    const gameContainer = document.getElementById('game-container');
+    const canvas = document.getElementById('game-container');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
 
     socket.on('update positions', (posList) => {
-        while (gameContainer.firstChild) { gameContainer.removeChild(gameContainer.firstChild); }
-        for (const i in posList){
-            const circle = document.createElement('span');
-            circle.className = 'circle';
-            circle.style.transform = `translate(${posList[i].x}px, ${posList[i].y}px)`;
-            gameContainer.appendChild(circle);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'red'
+        ctx.beginPath();
+        for (const i in posList) {
+            const p = posList[i];
+            ctx.moveTo(p.x + radius, p.y);
+            ctx.arc(p.x, p.y, radius, 0, pi2);
         }
-    })
+        ctx.stroke();
+        ctx.fill();
+    });
 
+    const keysPressed = {}
     document.body.addEventListener('keydown', (e) => {
-        if (e.key === 's') socket.emit('move down');
-        else if (e.key === 'w') socket.emit('move up');
-        else if (e.key === 'a') socket.emit('move left');
-        else if (e.key === 'd') socket.emit('move right');
-    })
+        keysPressed[e.key] = true;
+    });
 
+    document.body.addEventListener('keyup', (e) => {
+        delete keysPressed[e.key];
+    });
+
+    setInterval(() => {
+        for (const i in keysPressed) {
+            if (i === 's') socket.emit('move down');
+            else if (i === 'w') socket.emit('move up');
+            else if (i === 'a') socket.emit('move left');
+            else if (i === 'd') socket.emit('move right');
+        }
+    }, 10);
 </script>
 </body>
 </html>
