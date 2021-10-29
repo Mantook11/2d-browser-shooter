@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const app = express();
 const server = require('http').createServer(app);
 const helper = require('./server/helper');
@@ -21,66 +23,103 @@ const initializeLobbies = () => {
     }
 };
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
+app.get('/', (req, res, next) => {
+    const cookies = req.cookies;
+    if (cookies['name'] === undefined) {
+        res.sendFile(__dirname + '/client/landing.html');
+    } else {
+        next();
+    }
+});
+
+app.post('/', (req, res, next) => {
+    const cookies = req.cookies;
+    if (cookies['name'] === undefined) {
+        next();
+    } else {
+        res.redirect('/');
+    }
+});
+
+app.post('/', (req, res) => {
+    if (req.body.name) {
+        res.cookie('name', req.body.name, { maxAge: 900000, httpOnly: true });
+    }else{
+        const randomName = uniqueNamesGenerator({dictionaries: [adjectives, animals]}).replace("_", " ");
+        res.cookie('name', randomName, { maxAge: 900000, httpOnly: true });
+    }
+    res.sendFile(__dirname + '/client/index.html');
+});
+
+app.use(express.static('client'));
+
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/client/index.html');
 });
 
 setInterval(function () {
     for (const i in LOBBY_LIST) {
-        io.to(i).emit('update positions', LOBBY_LIST[i].position);
+        io.to(i).emit('update state', LOBBY_LIST[i].state);
     }
 }, 10);
 
 io.on('connection', async (socket) => {
     //Generate unique id for socket
     const socketId = uuidv4();
-    //Generate random name
-    const name = uniqueNamesGenerator({dictionaries: [adjectives, animals]}).replace("_", " ");
-    //Get random lobby id
-    const lobbyId = helper.getRandomInt(MAX_LOBBIES);
-    //Join room
-    await socket.join(lobbyId.toString());
 
-    const currentLobby = LOBBY_LIST[lobbyId];
 
-    //Update lists
-    SOCKET_LIST[socketId] = socket;
-    currentLobby.players[socketId] = new Player(name, socketId, Date.now());
-    currentLobby.position[socketId] = new helper.Vector2(0, 0);
-
-    console.log(`${name} connected to lobby ${lobbyId}!`);
-
-    socket.on('move right', () => {
-        currentLobby.position[socketId].x += 1;
+    socket.on('set name', (name) => {
+        main(name);
     });
 
-    socket.on('move left', () => {
-        currentLobby.position[socketId].x -= 1;
-    });
+    const main = async (name) => {
+        //Get random lobby id
+        const lobbyId = helper.getRandomInt(MAX_LOBBIES);
+        //Join room
+        await socket.join(lobbyId.toString());
 
-    socket.on('move up', () => {
-        currentLobby.position[socketId].y -= 1;
-    });
+        const currentLobby = LOBBY_LIST[lobbyId];
 
-    socket.on('move down', () => {
-        currentLobby.position[socketId].y += 1;
-    });
+        //Update lists
+        SOCKET_LIST[socketId] = socket;
+        currentLobby.players[socketId] = new Player(name, socketId, Date.now());
+        currentLobby.state[socketId] = new helper.State(0, 0, name);
 
-    socket.on('chat message', (msg) => {
-        const msgWithUser = `${name}: ${msg}`;
+        console.log(`${name} connected to lobby ${lobbyId}!`);
 
-        io.to(lobbyId.toString()).emit('add to chat', msgWithUser);
-    });
+        socket.on('move right', () => {
+            currentLobby.state[socketId].x += 1;
+        });
 
-    socket.on('disconnect', () => {
-        delete SOCKET_LIST[socketId];
-        delete currentLobby.players[socketId];
-        delete currentLobby.position[socketId];
-    });
+        socket.on('move left', () => {
+            currentLobby.state[socketId].x -= 1;
+        });
+
+        socket.on('move up', () => {
+            currentLobby.state[socketId].y -= 1;
+        });
+
+        socket.on('move down', () => {
+            currentLobby.state[socketId].y += 1;
+        });
+
+        socket.on('chat message', (msg) => {
+            const msgWithUser = `${name}: ${msg}`;
+
+            io.to(lobbyId.toString()).emit('add to chat', msgWithUser);
+        });
+
+        socket.on('disconnect', () => {
+            delete SOCKET_LIST[socketId];
+            delete currentLobby.players[socketId];
+            delete currentLobby.state[socketId];
+        });
+    };
 
 });
-
-app.use(express.static('client'));
 
 server.listen(process.env.PORT, () => {
     initializeLobbies();

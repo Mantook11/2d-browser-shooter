@@ -20,11 +20,12 @@ function shuffle(array) {
     return array;
 }
 
-class Vector2 {
-    constructor(x, y) {
+class State {
+    constructor(x, y, name) {
         this.x = x;
         this.y = y;
+        this.name = name;
     }
 }
 
-module.exports = {getRandomInt, shuffle, Vector2};
+module.exports = {getRandomInt, shuffle, State};

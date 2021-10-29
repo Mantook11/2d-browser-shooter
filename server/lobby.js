@@ -1,9 +1,9 @@
 class Lobby {
-    constructor(id, players, scores, position) {
+    constructor(id, players, scores, state) {
         this.id = id;
         this.players = players;
         this.scores = scores;
-        this.position = position;
+        this.state = state;
     }
 }
 

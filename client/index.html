@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="./cookie.js"></script>
     <link rel="stylesheet" href="index.css">
-    <title>Chat</title>
+    <title>Game</title>
 </head>
 <body>
 <canvas width="480" height="320" id="game-container">
@@ -11,22 +12,28 @@
 </canvas>
 <script>
     const socket = io();
+    socket.on('connect', () => {
+        socket.emit('set name', getCookie('name'));
+    });
+
     const radius = 5;
     const pi2 = Math.PI * 2;
 
     const canvas = document.getElementById('game-container');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
     const ctx = canvas.getContext("2d");
 
-    socket.on('update positions', (posList) => {
+    socket.on('update state', (states) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'red'
         ctx.beginPath();
-        for (const i in posList) {
-            const p = posList[i];
+        for (const i in states) {
+            const p = states[i];
             ctx.moveTo(p.x + radius, p.y);
             ctx.arc(p.x, p.y, radius, 0, pi2);
+            ctx.fillText(p.name, p.x - 3 * radius + 0.5, p.y - 2 * radius);
         }
         ctx.stroke();
         ctx.fill();
