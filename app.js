@@ -62,14 +62,13 @@ app.get('/', (req, res) => {
 
 setInterval(function () {
     for (const i in LOBBY_LIST) {
-        io.to(i).emit('update', LOBBY_LIST[i].state, LOBBY_LIST[i].drawings );
+        io.to(i).emit('update state', LOBBY_LIST[i].state);
     }
 }, 10);
 
 io.on('connection', async (socket) => {
     //Generate unique id for socket
     const socketId = uuidv4();
-
 
     socket.on('set name', (name) => {
         main(name);
@@ -90,12 +89,17 @@ io.on('connection', async (socket) => {
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
+        socket.emit('initialize drawing', currentLobby.drawings);
+
         socket.on('clear drawings', () => {
             currentLobby.drawings.length = 0;
+            io.to(lobbyId.toString()).emit('initialize drawing', currentLobby.drawings);
         });
 
         socket.on('action1', () => {
-            currentLobby.drawings.push({x: currentLobby.state[socketId].x, y: currentLobby.state[socketId].y});
+            const obj = {x: currentLobby.state[socketId].x, y: currentLobby.state[socketId].y};
+            currentLobby.drawings.push(obj);
+            io.to(lobbyId.toString()).emit('update drawing', obj);
         });
 
         socket.on('move right', () => {

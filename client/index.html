@@ -9,9 +9,10 @@
 <body>
 <h3 class="unselectable" style="z-index: 10">Hold left click to draw.
     Press c to clear canvas.</h3>
-<canvas width="480" height="320" id="game-container">
-
-</canvas>
+<canvas id="drawingLayer" width="100" height="100"
+        style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+<canvas id="playerLayer" width="100" height="100"
+        style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
 <script>
     const socket = io();
     socket.on('connect', () => {
@@ -21,31 +22,46 @@
     const radius = 5;
     const pi2 = Math.PI * 2;
 
-    const canvas = document.getElementById('game-container');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const playerCanvas = document.getElementById('playerLayer');
+    const drawingCanvas = document.getElementById('drawingLayer');
 
-    const ctx = canvas.getContext("2d");
+    drawingCanvas.width = window.innerWidth;
+    drawingCanvas.height = window.innerHeight;
+    playerCanvas.width = window.innerWidth;
+    playerCanvas.height = window.innerHeight;
 
-    socket.on('update', (states, drawings) => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'red'
+    const playerCtx = playerCanvas.getContext("2d");
+    const drawingCtx = drawingCanvas.getContext("2d");
 
-        ctx.beginPath();
-        for (const i in states) {
-            const p = states[i];
-            ctx.moveTo(p.x + radius, p.y);
-            ctx.arc(p.x, p.y, radius, 0, pi2);
-            ctx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
-        }
-        ctx.stroke();
-        ctx.fill();
-        ctx.fillStyle = 'black'
+    drawingCtx.fillStyle = 'black';
+    playerCtx.fillStyle = 'red';
+
+    socket.on('initialize drawing', (drawings) => {
+        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
         for (const i in drawings) {
             const p = drawings[i];
-            ctx.moveTo(p.x + radius, p.y);
-            ctx.fillRect(p.x, p.y, 2, 2);
+            drawingCtx.moveTo(p.x + radius, p.y);
+            drawingCtx.fillRect(p.x, p.y, 2, 2);
         }
+    });
+
+    socket.on('update drawing', (drawing) => {
+        console.log(drawing.x, drawing.y);
+        drawingCtx.moveTo(drawing.x + radius, drawing.y);
+        drawingCtx.fillRect(drawing.x, drawing.y, 2, 2);
+    });
+
+    socket.on('update state', (states) => {
+        playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
+        playerCtx.beginPath();
+        for (const i in states) {
+            const p = states[i];
+            playerCtx.moveTo(p.x + radius, p.y);
+            playerCtx.arc(p.x, p.y, radius, 0, pi2);
+            playerCtx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
+        }
+        playerCtx.stroke();
+        playerCtx.fill();
     });
 
     let mouseIntervalId = -1;
@@ -59,11 +75,11 @@
     });
 
     document.body.addEventListener('mousedown', (e) => {
-        if(mouseIntervalId === -1){
+        if (mouseIntervalId === -1) {
             mouseIntervalId = setInterval(() => {
                 socket.emit('action1');
             }, 10);
-        }else{
+        } else {
             clearInterval(mouseIntervalId);
             mouseIntervalId = -1;
         }
