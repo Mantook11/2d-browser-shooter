@@ -86,7 +86,7 @@ io.on('connection', async (socket) => {
         //Update lists
         SOCKET_LIST[socketId] = socket;
         currentLobby.players[socketId] = new Player(name, socketId, Date.now());
-        currentLobby.state[socketId] = new helper.State(0, 0, name);
+        currentLobby.state[socketId] = new helper.State(200, 200, name);
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
