@@ -46,10 +46,10 @@ app.post('/', (req, res, next) => {
 
 app.post('/', (req, res) => {
     if (req.body.name) {
-        res.cookie('name', req.body.name, { maxAge: 900000, httpOnly: true });
+        res.cookie('name', req.body.name, { maxAge: 900000});
     }else{
         const randomName = uniqueNamesGenerator({dictionaries: [adjectives, animals]}).replace("_", " ");
-        res.cookie('name', randomName, { maxAge: 900000, httpOnly: true });
+        res.cookie('name', randomName, { maxAge: 900000});
     }
     res.sendFile(__dirname + '/client/index.html');
 });
