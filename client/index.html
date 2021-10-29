@@ -7,6 +7,8 @@
     <title>Game</title>
 </head>
 <body>
+<h3 class="unselectable" style="z-index: 10">Hold left click to draw.
+    Press c to clear canvas.</h3>
 <canvas width="480" height="320" id="game-container">
 
 </canvas>
@@ -25,20 +27,28 @@
 
     const ctx = canvas.getContext("2d");
 
-    socket.on('update state', (states) => {
+    socket.on('update', (states, drawings) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'red'
+
         ctx.beginPath();
         for (const i in states) {
             const p = states[i];
             ctx.moveTo(p.x + radius, p.y);
             ctx.arc(p.x, p.y, radius, 0, pi2);
-            ctx.fillText(p.name, p.x - 3 * radius + 0.5, p.y - 2 * radius);
+            ctx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
         }
         ctx.stroke();
         ctx.fill();
+        ctx.fillStyle = 'black'
+        for (const i in drawings) {
+            const p = drawings[i];
+            ctx.moveTo(p.x + radius, p.y);
+            ctx.fillRect(p.x, p.y, 2, 2);
+        }
     });
 
+    let mouseIntervalId = -1;
     const keysPressed = {}
     document.body.addEventListener('keydown', (e) => {
         keysPressed[e.key] = true;
@@ -48,8 +58,25 @@
         delete keysPressed[e.key];
     });
 
+    document.body.addEventListener('mousedown', (e) => {
+        if(mouseIntervalId === -1){
+            mouseIntervalId = setInterval(() => {
+                socket.emit('action1');
+            }, 10);
+        }else{
+            clearInterval(mouseIntervalId);
+            mouseIntervalId = -1;
+        }
+    })
+
+    document.body.addEventListener('mouseup', (e) => {
+        clearInterval(mouseIntervalId);
+        mouseIntervalId = -1;
+    })
+
     setInterval(() => {
         for (const i in keysPressed) {
+            if (i === 'c') socket.emit('clear drawings');
             if (i === 's') socket.emit('move down');
             else if (i === 'w') socket.emit('move up');
             else if (i === 'a') socket.emit('move left');

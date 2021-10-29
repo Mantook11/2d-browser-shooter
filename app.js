@@ -15,11 +15,11 @@ const io = new Server(server);
 
 const SOCKET_LIST = {};
 const LOBBY_LIST = {};
-const MAX_LOBBIES = 2;
+const MAX_LOBBIES = 1;
 
 const initializeLobbies = () => {
-    for (let i = 0; i < 2; i++) {
-        LOBBY_LIST[i] = new Lobby(i, {}, {}, {});
+    for (let i = 0; i < MAX_LOBBIES; i++) {
+        LOBBY_LIST[i] = new Lobby(i, {}, {}, {}, []);
     }
 };
 
@@ -46,10 +46,10 @@ app.post('/', (req, res, next) => {
 
 app.post('/', (req, res) => {
     if (req.body.name) {
-        res.cookie('name', req.body.name, { maxAge: 900000});
-    }else{
+        res.cookie('name', req.body.name, {maxAge: 900000});
+    } else {
         const randomName = uniqueNamesGenerator({dictionaries: [adjectives, animals]}).replace("_", " ");
-        res.cookie('name', randomName, { maxAge: 900000});
+        res.cookie('name', randomName, {maxAge: 900000});
     }
     res.sendFile(__dirname + '/client/index.html');
 });
@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
 
 setInterval(function () {
     for (const i in LOBBY_LIST) {
-        io.to(i).emit('update state', LOBBY_LIST[i].state);
+        io.to(i).emit('update', LOBBY_LIST[i].state, LOBBY_LIST[i].drawings );
     }
 }, 10);
 
@@ -89,6 +89,14 @@ io.on('connection', async (socket) => {
         currentLobby.state[socketId] = new helper.State(200, 200, name);
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
+
+        socket.on('clear drawings', () => {
+            currentLobby.drawings.length = 0;
+        });
+
+        socket.on('action1', () => {
+            currentLobby.drawings.push({x: currentLobby.state[socketId].x, y: currentLobby.state[socketId].y});
+        });
 
         socket.on('move right', () => {
             currentLobby.state[socketId].x += 1;
