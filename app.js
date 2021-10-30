@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
 setInterval(function () {
     for (const i in LOBBY_LIST) {
         io.to(i).emit('heartbeat');
-        game.iterateShots(LOBBY_LIST[i].shots);
+        game.iterateShots(LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
         io.to(i).emit('update shots', LOBBY_LIST[i].shots);
         io.to(i).emit('update player', LOBBY_LIST[i].state);
     }
@@ -89,13 +89,14 @@ io.on('connection', async (socket) => {
         SOCKET_LIST[socketId] = socket;
         currentLobby.players[socketId] = new Player(name, socketId, Date.now());
         currentLobby.state[socketId] = new helper.State(200, 200, name);
+        currentLobby.shots[socketId] = [];
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
         socket.on('action1', (mousePos) => {
             const initialLocation = {x: currentLobby.state[socketId]['x'], y: currentLobby.state[socketId]['y']};
             const dir = game.calculateDir(initialLocation, mousePos);
-            currentLobby.shots[socketId] = {position: initialLocation, dir, x: 6, y: 6};
+            currentLobby.shots[socketId].push({position: initialLocation, dir, x: 6, y: 6, bounces: 2});
         });
 
         socket.on('move right', () => {

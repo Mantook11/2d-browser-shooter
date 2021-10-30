@@ -19,7 +19,8 @@
             socket.emit('set name', getCookie('name'));
         });
 
-        const radius = 5;
+        const playerRadius = 6;
+        const bulletRadius = 2;
         const pi2 = Math.PI * 2;
 
         const playerCanvas = document.getElementById('playerLayer');
@@ -36,33 +37,27 @@
             for (const i in states) {
                 const p = states[i];
 
-                playerCtx.moveTo(p.x + radius, p.y);
-                playerCtx.arc(p.x, p.y, radius, 0, pi2);
-                playerCtx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
-            }        
+                playerCtx.moveTo(p.x + playerRadius, p.y);
+                playerCtx.arc(p.x, p.y, playerRadius, 0, pi2);
+                playerCtx.fillText(p.name, p.x - 2 * playerRadius - 1.5 * p.name.length, p.y - 2 * playerRadius);
+            }
             playerCtx.stroke();
             playerCtx.fill();
         }));
 
-        let previousShots = {};
         shotsCtx.fillStyle = 'black';
         socket.on('update shots', (shots) => requestAnimationFrame(() => {
             shotsCtx.beginPath();
             shotsCtx.clearRect(0, 0, shotsCanvas.width, shotsCanvas.height);
-            
+
             for (const i in shots) {
-                const s = shots[i];
-
-                // if(previousShots[i]){
-                //     const prev = previousShots[i];
-                //     shotsCtx.clearRect(prev.position.x - radius/2 - 1, prev.position.y - radius/2 - 1, radius + 2, radius + 2);
-                // }
-
-                shotsCtx.moveTo(s.position.x + radius/2, s.position.y);
-                shotsCtx.arc(s.position.x, s.position.y, radius/2, 0, pi2);
+                const shotPlayer = shots[i];
+                shotPlayer.forEach(shot => {
+                    shotsCtx.moveTo(shot.position.x + bulletRadius, shot.position.y);
+                    shotsCtx.arc(shot.position.x, shot.position.y, bulletRadius, 0, pi2);
+                });
             }
             shotsCtx.fill();
-            // previousShots = shots;
         }));
 
         const keysPressed = {}
