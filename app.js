@@ -100,19 +100,28 @@ io.on('connection', async (socket) => {
         });
 
         socket.on('move right', () => {
-            currentLobby.state[socketId].x += 2;
+            if (currentLobby.state[socketId].x + 2 < process.env.CANVAS_WIDTH - process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].x += 2;
+            }
+
         });
 
         socket.on('move left', () => {
-            currentLobby.state[socketId].x -= 2;
+            if (currentLobby.state[socketId].x - 2 > process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].x -= 2;
+            }
         });
 
         socket.on('move up', () => {
-            currentLobby.state[socketId].y -= 2;
+            if (currentLobby.state[socketId].y - 2 > process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].y -= 2;
+            }
         });
 
         socket.on('move down', () => {
-            currentLobby.state[socketId].y += 2;
+            if (currentLobby.state[socketId].y + 2 < process.env.CANVAS_HEIGHT - process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].y += 2;
+            }
         });
 
         socket.on('chat message', (msg) => {

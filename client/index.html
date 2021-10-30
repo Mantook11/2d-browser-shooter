@@ -9,10 +9,10 @@
 </head>
 
 <body>
-    <h3 class="unselectable" style="z-index: 10">WASD to move.
+    <h3 class="unselectable" style="z-index: 10">&nbsp;WASD to move.
         Left click to shoot.</h3>
-    <canvas id="playerLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
-    <canvas id="shotsLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+    <canvas id="playerLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 1; border-style: solid"></canvas>
+    <canvas id="shotsLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 0; border-style: solid"></canvas>
     <script>
         const socket = io();
         socket.on('connect', () => {
