@@ -19,7 +19,7 @@ const MAX_LOBBIES = 1;
 
 const initializeLobbies = () => {
     for (let i = 0; i < MAX_LOBBIES; i++) {
-        LOBBY_LIST[i] = new Lobby(i, {}, {}, {}, []);
+        LOBBY_LIST[i] = new Lobby(i, {}, {}, {}, {});
     }
 };
 
@@ -62,7 +62,10 @@ app.get('/', (req, res) => {
 
 setInterval(function () {
     for (const i in LOBBY_LIST) {
-        io.to(i).emit('update state', LOBBY_LIST[i].state);
+        io.to(i).emit('heartbeat');
+        game.iterateShots(LOBBY_LIST[i].shots);
+        io.to(i).emit('update shots', LOBBY_LIST[i].shots);
+        io.to(i).emit('update player', LOBBY_LIST[i].state);
     }
 }, 10);
 
@@ -89,33 +92,26 @@ io.on('connection', async (socket) => {
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
-        socket.emit('initialize drawing', currentLobby.drawings);
-
-        socket.on('clear drawings', () => {
-            currentLobby.drawings.length = 0;
-            io.to(lobbyId.toString()).emit('initialize drawing', currentLobby.drawings);
-        });
-
-        socket.on('action1', () => {
-            const obj = {x: currentLobby.state[socketId].x, y: currentLobby.state[socketId].y};
-            currentLobby.drawings.push(obj);
-            io.to(lobbyId.toString()).emit('update drawing', obj);
+        socket.on('action1', (mousePos) => {
+            const initialLocation = {x: currentLobby.state[socketId]['x'], y: currentLobby.state[socketId]['y']};
+            const dir = game.calculateDir(initialLocation, mousePos);
+            currentLobby.shots[socketId] = {position: initialLocation, dir, x: 6, y: 6};
         });
 
         socket.on('move right', () => {
-            currentLobby.state[socketId].x += 1;
+            currentLobby.state[socketId].x += 2;
         });
 
         socket.on('move left', () => {
-            currentLobby.state[socketId].x -= 1;
+            currentLobby.state[socketId].x -= 2;
         });
 
         socket.on('move up', () => {
-            currentLobby.state[socketId].y -= 1;
+            currentLobby.state[socketId].y -= 2;
         });
 
         socket.on('move down', () => {
-            currentLobby.state[socketId].y += 1;
+            currentLobby.state[socketId].y += 2;
         });
 
         socket.on('chat message', (msg) => {

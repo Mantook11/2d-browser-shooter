@@ -1,104 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script src="/socket.io/socket.io.js"></script>
     <script src="./cookie.js"></script>
     <link rel="stylesheet" href="index.css">
     <title>Game</title>
 </head>
+
 <body>
-<h3 class="unselectable" style="z-index: 10">Hold left click to draw.
-    Press c to clear canvas.</h3>
-<canvas id="drawingLayer" width="100" height="100"
-        style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
-<canvas id="playerLayer" width="100" height="100"
-        style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
-<script>
-    const socket = io();
-    socket.on('connect', () => {
-        socket.emit('set name', getCookie('name'));
-    });
+    <h3 class="unselectable" style="z-index: 10">Hold left click to draw.
+        Press c to clear canvas.</h3>
+    <canvas id="playerLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+    <canvas id="shotsLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+    <script>
+        const socket = io();
+        socket.on('connect', () => {
+            socket.emit('set name', getCookie('name'));
+        });
 
-    const radius = 5;
-    const pi2 = Math.PI * 2;
+        const radius = 5;
+        const pi2 = Math.PI * 2;
 
-    const playerCanvas = document.getElementById('playerLayer');
-    const drawingCanvas = document.getElementById('drawingLayer');
+        const playerCanvas = document.getElementById('playerLayer');
+        const shotsCanvas = document.getElementById('shotsLayer');
 
-    drawingCanvas.width = window.innerWidth;
-    drawingCanvas.height = window.innerHeight;
-    playerCanvas.width = window.innerWidth;
-    playerCanvas.height = window.innerHeight;
+        const playerCtx = playerCanvas.getContext("2d");
+        const shotsCtx = shotsCanvas.getContext("2d");
 
-    const playerCtx = playerCanvas.getContext("2d");
-    const drawingCtx = drawingCanvas.getContext("2d");
+        playerCtx.fillStyle = 'red';
+        socket.on('update player', (states) => requestAnimationFrame(() => {
+            playerCtx.beginPath();
+            playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
 
-    drawingCtx.fillStyle = 'black';
-    playerCtx.fillStyle = 'red';
+            for (const i in states) {
+                const p = states[i];
 
-    socket.on('initialize drawing', (drawings) => {
-        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-        for (const i in drawings) {
-            const p = drawings[i];
-            drawingCtx.moveTo(p.x + radius, p.y);
-            drawingCtx.fillRect(p.x, p.y, 2, 2);
-        }
-    });
+                playerCtx.moveTo(p.x + radius, p.y);
+                playerCtx.arc(p.x, p.y, radius, 0, pi2);
+                playerCtx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
+            }        
+            playerCtx.stroke();
+            playerCtx.fill();
+        }));
 
-    socket.on('update drawing', (drawing) => {
-        console.log(drawing.x, drawing.y);
-        drawingCtx.moveTo(drawing.x + radius, drawing.y);
-        drawingCtx.fillRect(drawing.x, drawing.y, 2, 2);
-    });
+        let previousShots = {};
+        shotsCtx.fillStyle = 'black';
+        socket.on('update shots', (shots) => requestAnimationFrame(() => {
+            shotsCtx.beginPath();
+            shotsCtx.clearRect(0, 0, shotsCanvas.width, shotsCanvas.height);
+            
+            for (const i in shots) {
+                const s = shots[i];
 
-    socket.on('update state', (states) => {
-        playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
-        playerCtx.beginPath();
-        for (const i in states) {
-            const p = states[i];
-            playerCtx.moveTo(p.x + radius, p.y);
-            playerCtx.arc(p.x, p.y, radius, 0, pi2);
-            playerCtx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
-        }
-        playerCtx.stroke();
-        playerCtx.fill();
-    });
+                // if(previousShots[i]){
+                //     const prev = previousShots[i];
+                //     shotsCtx.clearRect(prev.position.x - radius/2 - 1, prev.position.y - radius/2 - 1, radius + 2, radius + 2);
+                // }
 
-    let mouseIntervalId = -1;
-    const keysPressed = {}
-    document.body.addEventListener('keydown', (e) => {
-        keysPressed[e.key] = true;
-    });
+                shotsCtx.moveTo(s.position.x + radius/2, s.position.y);
+                shotsCtx.arc(s.position.x, s.position.y, radius/2, 0, pi2);
+            }
+            shotsCtx.fill();
+            // previousShots = shots;
+        }));
 
-    document.body.addEventListener('keyup', (e) => {
-        delete keysPressed[e.key];
-    });
+        const keysPressed = {}
+        let mousePressed = false;
+        let mousePos;
+        document.body.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
 
-    document.body.addEventListener('mousedown', (e) => {
-        if (mouseIntervalId === -1) {
-            mouseIntervalId = setInterval(() => {
-                socket.emit('action1');
-            }, 10);
-        } else {
-            clearInterval(mouseIntervalId);
-            mouseIntervalId = -1;
-        }
-    })
+        document.body.addEventListener('keyup', (e) => {
+            delete keysPressed[e.key];
+        });
 
-    document.body.addEventListener('mouseup', (e) => {
-        clearInterval(mouseIntervalId);
-        mouseIntervalId = -1;
-    })
+        document.body.addEventListener('mousedown', (e) => {
+            mousePressed = true;
+            mousePos = {x: e.clientX, y: e.clientY};
+        })
 
-    setInterval(() => {
-        for (const i in keysPressed) {
-            if (i === 'c') socket.emit('clear drawings');
-            if (i === 's') socket.emit('move down');
-            else if (i === 'w') socket.emit('move up');
-            else if (i === 'a') socket.emit('move left');
-            else if (i === 'd') socket.emit('move right');
-        }
-    }, 10);
-</script>
+        socket.on('heartbeat', () => {
+            if (mousePressed) {mousePressed = false; socket.emit('action1', mousePos);}
+            for (const i in keysPressed) {
+                if (i === 's') socket.emit('move down');
+                else if (i === 'w') socket.emit('move up');
+                else if (i === 'a') socket.emit('move left');
+                else if (i === 'd') socket.emit('move right');
+            }
+        });
+    </script>
 </body>
+
 </html>
