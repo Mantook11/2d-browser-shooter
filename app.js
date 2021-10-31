@@ -65,7 +65,8 @@ setInterval(function () {
         io.to(i).emit('heartbeat');
         game.iterateShots(LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
         for (const j in LOBBY_LIST[i].players) {
-            io.to(j).emit('update state', {socketId: LOBBY_LIST[i].players[j].socketId, players: LOBBY_LIST[i].state, shots: LOBBY_LIST[i].shots});
+            const inside = game.getInsideCanvas(j, LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
+            io.to(j).emit('update state', {socketId: j, players: inside.statesPruned, shots: inside.shotsPruned});
         }
     }
 }, 10);
@@ -139,7 +140,7 @@ io.on('connection', async (socket) => {
 
 });
 
-server.listen(process.env.PORT, () => {
+server.listen(process.env.PORT || 3000, () => {
     initializeLobbies();
     console.log('listening on *:3000');
 });
