@@ -19,7 +19,7 @@ const MAX_LOBBIES = 1;
 
 const initializeLobbies = () => {
     for (let i = 0; i < MAX_LOBBIES; i++) {
-        LOBBY_LIST[i] = new Lobby(i, {}, {}, {}, []);
+        LOBBY_LIST[i] = new Lobby(i, {}, {}, {}, {});
     }
 };
 
@@ -62,60 +62,67 @@ app.get('/', (req, res) => {
 
 setInterval(function () {
     for (const i in LOBBY_LIST) {
-        io.to(i).emit('update state', LOBBY_LIST[i].state);
+        io.to(i).emit('heartbeat');
+        game.iterateShots(LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
+        for (const j in LOBBY_LIST[i].players) {
+            const inside = game.getInsideCanvas(j, LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
+            io.to(j).emit('update state', {socketId: j, players: inside.statesPruned, shots: inside.shotsPruned});
+        }
     }
 }, 10);
 
 io.on('connection', async (socket) => {
-    //Generate unique id for socket
-    const socketId = uuidv4();
-
     socket.on('set name', (name) => {
-        main(name);
+        //Generate unique id for socket
+        const socketId = uuidv4();
+        main(socketId, name);
     });
 
-    const main = async (name) => {
+    const main = async (socketId, name) => {
         //Get random lobby id
         const lobbyId = helper.getRandomInt(MAX_LOBBIES);
         //Join room
-        await socket.join(lobbyId.toString());
+        await socket.join([socketId, lobbyId.toString()]);
 
         const currentLobby = LOBBY_LIST[lobbyId];
 
         //Update lists
         SOCKET_LIST[socketId] = socket;
         currentLobby.players[socketId] = new Player(name, socketId, Date.now());
-        currentLobby.state[socketId] = new helper.State(200, 200, name);
+        currentLobby.state[socketId] = new helper.State(100, 100, name);
+        currentLobby.shots[socketId] = [];
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
-        socket.emit('initialize drawing', currentLobby.drawings);
-
-        socket.on('clear drawings', () => {
-            currentLobby.drawings.length = 0;
-            io.to(lobbyId.toString()).emit('initialize drawing', currentLobby.drawings);
-        });
-
-        socket.on('action1', () => {
-            const obj = {x: currentLobby.state[socketId].x, y: currentLobby.state[socketId].y};
-            currentLobby.drawings.push(obj);
-            io.to(lobbyId.toString()).emit('update drawing', obj);
+        socket.on('action1', (mousePos) => {
+            const initialLocation = {x: currentLobby.state[socketId]['x'], y: currentLobby.state[socketId]['y']};
+            const dir = game.calculateDir(initialLocation, mousePos);
+            currentLobby.shots[socketId].push({position: initialLocation, dir, x: 6, y: 6, bounces: 2});
         });
 
         socket.on('move right', () => {
-            currentLobby.state[socketId].x += 1;
+            if (currentLobby.state[socketId].x + 2 < process.env.MAP_WIDTH - process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].x += 1;
+            }
+
         });
 
         socket.on('move left', () => {
-            currentLobby.state[socketId].x -= 1;
+            if (currentLobby.state[socketId].x - 2 > process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].x -= 1;
+            }
         });
 
         socket.on('move up', () => {
-            currentLobby.state[socketId].y -= 1;
+            if (currentLobby.state[socketId].y - 2 > process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].y -= 1;
+            }
         });
 
         socket.on('move down', () => {
-            currentLobby.state[socketId].y += 1;
+            if (currentLobby.state[socketId].y + 2 < process.env.MAP_HEIGHT - process.env.PLAYER_RADIUS) {
+                currentLobby.state[socketId].y += 1;
+            }
         });
 
         socket.on('chat message', (msg) => {
@@ -133,7 +140,7 @@ io.on('connection', async (socket) => {
 
 });
 
-server.listen(process.env.PORT, () => {
+server.listen(process.env.PORT || 3000, () => {
     initializeLobbies();
     console.log('listening on *:3000');
 });

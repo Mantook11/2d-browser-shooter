@@ -1,71 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script src="/socket.io/socket.io.js"></script>
     <script src="./cookie.js"></script>
     <link rel="stylesheet" href="index.css">
     <title>Game</title>
 </head>
+
 <body>
-<h3 class="unselectable" style="z-index: 10">Hold left click to draw.
-    Press c to clear canvas.</h3>
-<canvas id="drawingLayer" width="100" height="100"
-        style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
-<canvas id="playerLayer" width="100" height="100"
-        style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+<canvas id="worldLayer" width="1000px" height="1000px"
+        style="position: absolute; z-index: 1; border-style: solid"></canvas>
+<canvas id="playerLayer" width="1000px" height="1000px"
+        style="position: absolute; z-index: 2; border-style: solid"></canvas>
+<h3 class="unselectable" style="position: absolute; bottom: 0;">WASD to move. Left click to shoot.</h3>
 <script>
     const socket = io();
     socket.on('connect', () => {
         socket.emit('set name', getCookie('name'));
     });
 
-    const radius = 5;
+    const name = getCookie('name');
+    const playerRadius = 6;
+    const bulletRadius = 2;
     const pi2 = Math.PI * 2;
 
+    const worldCanvas = document.getElementById('worldLayer');
     const playerCanvas = document.getElementById('playerLayer');
-    const drawingCanvas = document.getElementById('drawingLayer');
 
-    drawingCanvas.width = window.innerWidth;
-    drawingCanvas.height = window.innerHeight;
+    worldCanvas.width = window.innerWidth;
+    worldCanvas.height = window.innerHeight;
     playerCanvas.width = window.innerWidth;
     playerCanvas.height = window.innerHeight;
 
+    const worldCtx = worldCanvas.getContext("2d");
     const playerCtx = playerCanvas.getContext("2d");
-    const drawingCtx = drawingCanvas.getContext("2d");
 
-    drawingCtx.fillStyle = 'black';
+    const height = Math.floor(worldCanvas.height / 200.0);
+    if (worldCanvas.height > 0) {
+        worldCanvas.height = height * 200;
+        worldCanvas.width = height * 200;
+        playerCanvas.width = height * 200;
+        playerCanvas.height = height * 200;
+        worldCtx.scale(height, height);
+        playerCtx.scale(height, height);
+    }
+
+    playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
+    worldCtx.clearRect(0, 0, worldCanvas.width, worldCanvas.height);
+
+    playerCtx.beginPath();
+    playerCtx.fillStyle = 'black';
+    playerCtx.moveTo(100 + playerRadius, 100);
+    playerCtx.arc(100, 100, playerRadius, 0, pi2);
+    playerCtx.fillText(name, 100 - 2 * playerRadius - 1.5 * name.length, 100 - 2 * playerRadius);
     playerCtx.fillStyle = 'red';
+    playerCtx.stroke();
+    playerCtx.fill();
 
-    socket.on('initialize drawing', (drawings) => {
-        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-        for (const i in drawings) {
-            const p = drawings[i];
-            drawingCtx.moveTo(p.x + radius, p.y);
-            drawingCtx.fillRect(p.x, p.y, 2, 2);
+    const middleTracker = {x: 0, y: 0};
+    let playerPos = {x: 100, y: 100};
+
+    const bg_x = [0, 200, 400, 600, 800, 1000];
+    const updateBackground = () => {
+        worldCtx.beginPath();
+        worldCtx.fillStyle = 'black';
+        for (let i = 0; i < bg_x.length; i++) {
+            const h = bg_x[i];
+            if (h > playerPos.y - 200 || h < playerPos.y + 200) {
+                worldCtx.fillRect(0, h + middleTracker.y, 200, 1);
+            }
+            if (h > playerPos.x - 200 || h < playerPos.x + 200) {
+                worldCtx.fillRect(h + middleTracker.x, 0, 1, 200);
+            }
         }
-    });
 
-    socket.on('update drawing', (drawing) => {
-        console.log(drawing.x, drawing.y);
-        drawingCtx.moveTo(drawing.x + radius, drawing.y);
-        drawingCtx.fillRect(drawing.x, drawing.y, 2, 2);
-    });
+        requestAnimationFrame(updateBackground);
+    };
+    requestAnimationFrame(updateBackground);
 
     socket.on('update state', (states) => {
-        playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
-        playerCtx.beginPath();
-        for (const i in states) {
-            const p = states[i];
-            playerCtx.moveTo(p.x + radius, p.y);
-            playerCtx.arc(p.x, p.y, radius, 0, pi2);
-            playerCtx.fillText(p.name, p.x - 2 * radius - 1.5 * p.name.length, p.y - 2 * radius);
-        }
-        playerCtx.stroke();
-        playerCtx.fill();
+        const thisPosition = states.players[states.socketId];
+        playerPos = thisPosition;
+        middleTracker.x = -(thisPosition.x - 100);
+        middleTracker.y = -(thisPosition.y - 100);
+        worldCtx.clearRect(0, 0, worldCanvas.width, worldCanvas.height);
+        updatePlayer(states.players, states.socketId);
+        updateShots(states.shots);
     });
 
-    let mouseIntervalId = -1;
+    const updatePlayer = (players, socketId) => requestAnimationFrame(() => {
+        worldCtx.beginPath();
+
+        for (const i in players) {
+            if (i === socketId) continue;
+            const p = players[i];
+            const x = p.x + middleTracker.x;
+            const y = p.y + middleTracker.y;
+
+            worldCtx.moveTo(x + playerRadius, y);
+            worldCtx.arc(x, y, playerRadius, 0, pi2);
+            worldCtx.fillText(p.name, x - 2 * playerRadius - 1.5 * p.name.length, y - 2 * playerRadius);
+        }
+        worldCtx.stroke();
+        worldCtx.fillStyle = 'red';
+        worldCtx.fill();
+    });
+
+    const updateShots = (shots) => requestAnimationFrame(() => {
+        worldCtx.beginPath();
+        for (const i in shots) {
+            const shotPlayer = shots[i];
+            shotPlayer.forEach(shot => {
+                const x = shot.position.x + middleTracker.x;
+                const y = shot.position.y + middleTracker.y;
+
+                worldCtx.moveTo(x + bulletRadius, y);
+                worldCtx.arc(x, y, bulletRadius, 0, pi2);
+            });
+        }
+        worldCtx.fillStyle = 'black';
+        worldCtx.fill();
+    });
+
     const keysPressed = {}
+    let mousePressed = false;
+    let mousePos;
     document.body.addEventListener('keydown', (e) => {
         keysPressed[e.key] = true;
     });
@@ -74,31 +134,28 @@
         delete keysPressed[e.key];
     });
 
-    document.body.addEventListener('mousedown', (e) => {
-        if (mouseIntervalId === -1) {
-            mouseIntervalId = setInterval(() => {
-                socket.emit('action1');
-            }, 10);
-        } else {
-            clearInterval(mouseIntervalId);
-            mouseIntervalId = -1;
+    playerCanvas.addEventListener('mousedown', (e) => {
+        mousePressed = true;
+        mousePos = {
+            x: Math.round((e.clientX/height - middleTracker.x)),
+            y: Math.round((e.clientY/height - middleTracker.y))
+        };
+        console.log(mousePos);
+    })
+
+    socket.on('heartbeat', () => {
+        if (mousePressed) {
+            mousePressed = false;
+            socket.emit('action1', mousePos);
         }
-    })
-
-    document.body.addEventListener('mouseup', (e) => {
-        clearInterval(mouseIntervalId);
-        mouseIntervalId = -1;
-    })
-
-    setInterval(() => {
         for (const i in keysPressed) {
-            if (i === 'c') socket.emit('clear drawings');
             if (i === 's') socket.emit('move down');
             else if (i === 'w') socket.emit('move up');
             else if (i === 'a') socket.emit('move left');
             else if (i === 'd') socket.emit('move right');
         }
-    }, 10);
+    });
 </script>
 </body>
+
 </html>

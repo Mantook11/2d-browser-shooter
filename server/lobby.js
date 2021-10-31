@@ -1,10 +1,10 @@
 class Lobby {
-    constructor(id, players, scores, state, drawings) {
+    constructor(id, players, scores, state, shots) {
         this.id = id;
         this.players = players;
         this.scores = scores;
         this.state = state;
-        this.drawings = drawings;
+        this.shots = shots;
     }
 }
 
