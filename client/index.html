@@ -60,10 +60,31 @@
         playerCtx.stroke();
         playerCtx.fill();
 
-        const middleTracker = { x: 0, y: 0 }
+        const middleTracker = { x: 0, y: 0 };
+        let playerPos = { x: 100, y: 100 };
+
+        const bg_x = [0, 200, 400, 600, 800, 1000];
+        const updateBackground = () => {
+            worldCtx.beginPath();
+            worldCtx.fillStyle = 'black';
+            for (let i = 0; i < bg_x.length; i++) {
+                const h = bg_x[i];
+                if (h > playerPos.y - 200 || h < playerPos.y + 200) {
+                    worldCtx.fillRect(0, h + middleTracker.y, 200, 1);
+                }
+                if (h > playerPos.x - 200 || h < playerPos.x + 200) {
+                    worldCtx.fillRect(h + middleTracker.x, 0, 1, 200);
+                }
+            };
+
+            requestAnimationFrame(updateBackground);
+        };
+
+        requestAnimationFrame(updateBackground);
 
         socket.on('update state', (states) => {
             const thisPosition = states.players[states.socketId];
+            playerPos = thisPosition;
             middleTracker.x = -(thisPosition.x - 100);
             middleTracker.y = -(thisPosition.y - 100);
             worldCtx.clearRect(0, 0, worldCanvas.width, worldCanvas.height);
@@ -116,9 +137,9 @@
             delete keysPressed[e.key];
         });
 
-        worldCanvas.addEventListener('mousedown', (e) => {
+        document.body.addEventListener('mousedown', (e) => {
             mousePressed = true;
-            mousePos = { x: Math.round(e.clientX/height), y: Math.round(e.clientY/height) - 20};
+            mousePos = { x: Math.round(e.clientX) + middleTracker.x, y: Math.round(e.clientY) + middleTracker.y};
             console.log(mousePos);
         })
 
