@@ -9,83 +9,119 @@
 </head>
 
 <body>
-    <h3 class="unselectable" style="z-index: 10">&nbsp;WASD to move.
-        Left click to shoot.</h3>
-    <canvas id="playerLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 1; border-style: solid"></canvas>
-    <canvas id="shotsLayer" width="600" height="600" style="position: absolute; left: 0; top: 0; z-index: 0; border-style: solid"></canvas>
-    <script>
-        const socket = io();
-        socket.on('connect', () => {
-            socket.emit('set name', getCookie('name'));
-        });
+<h3 class="unselectable" style="z-index: 10">&nbsp;WASD to move.
+    Left click to shoot.</h3>
+<canvas id="worldLayer" width="1000px" height="1000px"
+        style="position: absolute; z-index: 0; border-style: dashed"></canvas>
+<canvas id="playerLayer" width="200px" height="200px"
+        style="position: absolute; z-index: 2; border-style: solid"></canvas>
+<canvas id="shotsLayer" width="200px" height="200px"
+        style="position: absolute; z-index: 1; border-style: solid"></canvas>
+<script>
+    const socket = io();
+    socket.on('connect', () => {
+        socket.emit('set name', getCookie('name'));
+    });
 
-        const playerRadius = 6;
-        const bulletRadius = 2;
-        const pi2 = Math.PI * 2;
+    const playerRadius = 6;
+    const bulletRadius = 2;
+    const pi2 = Math.PI * 2;
 
-        const playerCanvas = document.getElementById('playerLayer');
-        const shotsCanvas = document.getElementById('shotsLayer');
+    const worldCanvas = document.getElementById('worldLayer');
+    const playerCanvas = document.getElementById('playerLayer');
+    const shotsCanvas = document.getElementById('shotsLayer');
 
-        const playerCtx = playerCanvas.getContext("2d");
-        const shotsCtx = shotsCanvas.getContext("2d");
+    // playerCanvas.clientWidth = 200;
+    // playerCanvas.clientHeight = 200;
+    // shotsCanvas.clientWidth = 200;
+    // shotsCanvas.clientHeight = 200;
 
-        playerCtx.fillStyle = 'red';
-        socket.on('update player', (states) => requestAnimationFrame(() => {
-            playerCtx.beginPath();
-            playerCtx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
+    const worldCtx = worldCanvas.getContext("2d");
 
-            for (const i in states) {
-                const p = states[i];
+    worldCtx.clearRect(0, 0, worldCanvas.clientWidth, worldCanvas.clientHeight);
 
-                playerCtx.moveTo(p.x + playerRadius, p.y);
-                playerCtx.arc(p.x, p.y, playerRadius, 0, pi2);
-                playerCtx.fillText(p.name, p.x - 2 * playerRadius - 1.5 * p.name.length, p.y - 2 * playerRadius);
+    socket.on('update state', (states) => {
+        const thisPosition = states.players[states.socketId];
+        worldCtx.clearRect(thisPosition.x - shotsCanvas.clientWidth, thisPosition.y - shotsCanvas.clientHeight, shotsCanvas.width * 2, shotsCanvas.height * 2);
+        updatePlayer(states.players, thisPosition);
+        updateShots(states.shots, thisPosition);
+    });
+
+    const updatePlayer = (players, thisPosition) => requestAnimationFrame(() => {
+        worldCtx.beginPath();
+        playerCanvas.style.transform = `translate(${thisPosition.x - playerCanvas.clientWidth / 2}px,${thisPosition.y - playerCanvas.clientHeight / 2}px)`;
+        shotsCanvas.style.transform = `translate(${thisPosition.x - shotsCanvas.clientWidth / 2}px,${thisPosition.y - shotsCanvas.clientHeight / 2}px)`;
+
+        for (const i in players) {
+            const p = players[i];
+            const x = p.x;
+            const y = p.y;
+
+            if (x - playerRadius > thisPosition.x + playerCanvas.clientWidth / 2
+                || x + playerRadius < thisPosition.x - playerCanvas.clientWidth / 2
+                || y - playerRadius > thisPosition.y + playerCanvas.clientHeight / 2
+                || y + playerRadius < thisPosition.y - playerCanvas.clientHeight / 2) {
+                continue;
             }
-            playerCtx.stroke();
-            playerCtx.fill();
-        }));
+            worldCtx.moveTo(x + playerRadius, y);
+            worldCtx.arc(x, y, playerRadius, 0, pi2);
+            worldCtx.fillText(p.name, x - 2 * playerRadius - 1.5 * p.name.length, y - 2 * playerRadius);
+        }
+        worldCtx.stroke();
+        worldCtx.fillStyle = 'red';
+        worldCtx.fill();
+    });
 
-        shotsCtx.fillStyle = 'black';
-        socket.on('update shots', (shots) => requestAnimationFrame(() => {
-            shotsCtx.beginPath();
-            shotsCtx.clearRect(0, 0, shotsCanvas.width, shotsCanvas.height);
+    const updateShots = (shots, thisPosition) => requestAnimationFrame(() => {
+        worldCtx.beginPath();
+        for (const i in shots) {
+            const shotPlayer = shots[i];
+            shotPlayer.forEach(shot => {
+                const x = shot.position.x;
+                const y = shot.position.y;
+                if (x - bulletRadius > thisPosition.x + playerCanvas.clientWidth / 2
+                    || x + bulletRadius < thisPosition.x - playerCanvas.clientWidth / 2
+                    || y - bulletRadius > thisPosition.y + playerCanvas.clientHeight / 2
+                    || y + bulletRadius < thisPosition.y - playerCanvas.clientHeight / 2) {
+                    return;
+                }
+                worldCtx.moveTo(x + bulletRadius, y);
+                worldCtx.arc(x, y, bulletRadius, 0, pi2);
+            });
+        }
+        worldCtx.fillStyle = 'black';
+        worldCtx.fill();
+    });
 
-            for (const i in shots) {
-                const shotPlayer = shots[i];
-                shotPlayer.forEach(shot => {
-                    shotsCtx.moveTo(shot.position.x + bulletRadius, shot.position.y);
-                    shotsCtx.arc(shot.position.x, shot.position.y, bulletRadius, 0, pi2);
-                });
-            }
-            shotsCtx.fill();
-        }));
+    const keysPressed = {}
+    let mousePressed = false;
+    let mousePos;
+    document.body.addEventListener('keydown', (e) => {
+        keysPressed[e.key] = true;
+    });
 
-        const keysPressed = {}
-        let mousePressed = false;
-        let mousePos;
-        document.body.addEventListener('keydown', (e) => {
-            keysPressed[e.key] = true;
-        });
+    document.body.addEventListener('keyup', (e) => {
+        delete keysPressed[e.key];
+    });
 
-        document.body.addEventListener('keyup', (e) => {
-            delete keysPressed[e.key];
-        });
+    playerCanvas.addEventListener('mousedown', (e) => {
+        mousePressed = true;
+        mousePos = {x: e.clientX, y: e.clientY};
+    })
 
-        document.body.addEventListener('mousedown', (e) => {
-            mousePressed = true;
-            mousePos = {x: e.clientX, y: e.clientY};
-        })
-
-        socket.on('heartbeat', () => {
-            if (mousePressed) {mousePressed = false; socket.emit('action1', mousePos);}
-            for (const i in keysPressed) {
-                if (i === 's') socket.emit('move down');
-                else if (i === 'w') socket.emit('move up');
-                else if (i === 'a') socket.emit('move left');
-                else if (i === 'd') socket.emit('move right');
-            }
-        });
-    </script>
+    socket.on('heartbeat', () => {
+        if (mousePressed) {
+            mousePressed = false;
+            socket.emit('action1', mousePos);
+        }
+        for (const i in keysPressed) {
+            if (i === 's') socket.emit('move down');
+            else if (i === 'w') socket.emit('move up');
+            else if (i === 'a') socket.emit('move left');
+            else if (i === 'd') socket.emit('move right');
+        }
+    });
+</script>
 </body>
 
 </html>

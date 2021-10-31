@@ -64,31 +64,31 @@ setInterval(function () {
     for (const i in LOBBY_LIST) {
         io.to(i).emit('heartbeat');
         game.iterateShots(LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
-        io.to(i).emit('update shots', LOBBY_LIST[i].shots);
-        io.to(i).emit('update player', LOBBY_LIST[i].state);
+        for (const j in LOBBY_LIST[i].players) {
+            io.to(j).emit('update state', {socketId: LOBBY_LIST[i].players[j].socketId, players: LOBBY_LIST[i].state, shots: LOBBY_LIST[i].shots});
+        }
     }
 }, 10);
 
 io.on('connection', async (socket) => {
-    //Generate unique id for socket
-    const socketId = uuidv4();
-
     socket.on('set name', (name) => {
-        main(name);
+        //Generate unique id for socket
+        const socketId = uuidv4();
+        main(socketId, name);
     });
 
-    const main = async (name) => {
+    const main = async (socketId, name) => {
         //Get random lobby id
         const lobbyId = helper.getRandomInt(MAX_LOBBIES);
         //Join room
-        await socket.join(lobbyId.toString());
+        await socket.join([socketId, lobbyId.toString()]);
 
         const currentLobby = LOBBY_LIST[lobbyId];
 
         //Update lists
         SOCKET_LIST[socketId] = socket;
         currentLobby.players[socketId] = new Player(name, socketId, Date.now());
-        currentLobby.state[socketId] = new helper.State(200, 200, name);
+        currentLobby.state[socketId] = new helper.State(100, 100, name);
         currentLobby.shots[socketId] = [];
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
@@ -100,7 +100,7 @@ io.on('connection', async (socket) => {
         });
 
         socket.on('move right', () => {
-            if (currentLobby.state[socketId].x + 2 < process.env.CANVAS_WIDTH - process.env.PLAYER_RADIUS) {
+            if (currentLobby.state[socketId].x + 2 < process.env.MAP_WIDTH - process.env.PLAYER_RADIUS) {
                 currentLobby.state[socketId].x += 2;
             }
 
@@ -119,7 +119,7 @@ io.on('connection', async (socket) => {
         });
 
         socket.on('move down', () => {
-            if (currentLobby.state[socketId].y + 2 < process.env.CANVAS_HEIGHT - process.env.PLAYER_RADIUS) {
+            if (currentLobby.state[socketId].y + 2 < process.env.MAP_HEIGHT - process.env.PLAYER_RADIUS) {
                 currentLobby.state[socketId].y += 2;
             }
         });

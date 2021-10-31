@@ -37,14 +37,14 @@ const iterateShots = (shots, states) => {
             //Check if next shot will be inside the canvas or not
             const checkY = shot.position.y + shot.dir.y * shot.y;
             const checkX = shot.position.x + shot.dir.x * shot.x;
-            if (checkY < process.env.BULLET_RADIUS || checkY > process.env.CANVAS_HEIGHT - process.env.BULLET_RADIUS) {
+            if (checkY < process.env.BULLET_RADIUS || checkY > process.env.MAP_HEIGHT - process.env.BULLET_RADIUS) {
                 //If bounces are done then remove, else decrease bounce
                 if (shot.bounces === 0) {object.splice(index, 1); return;}
                 shot.dir.y = -shot.dir.y;
                 shot.bounces--;
             }
 
-            if (checkX < process.env.BULLET_RADIUS || checkX > process.env.CANVAS_WIDTH - process.env.BULLET_RADIUS) {
+            if (checkX < process.env.BULLET_RADIUS || checkX > process.env.MAP_WIDTH - process.env.BULLET_RADIUS) {
                 if (shot.bounces === 0) {object.splice(index, 1); return;}
                 shot.dir.x = -shot.dir.x;
                 shot.bounces--;
