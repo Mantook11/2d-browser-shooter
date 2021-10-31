@@ -102,26 +102,26 @@ io.on('connection', async (socket) => {
 
         socket.on('move right', () => {
             if (currentLobby.state[socketId].x + 2 < process.env.MAP_WIDTH - process.env.PLAYER_RADIUS) {
-                currentLobby.state[socketId].x += 2;
+                currentLobby.state[socketId].x += 1;
             }
 
         });
 
         socket.on('move left', () => {
             if (currentLobby.state[socketId].x - 2 > process.env.PLAYER_RADIUS) {
-                currentLobby.state[socketId].x -= 2;
+                currentLobby.state[socketId].x -= 1;
             }
         });
 
         socket.on('move up', () => {
             if (currentLobby.state[socketId].y - 2 > process.env.PLAYER_RADIUS) {
-                currentLobby.state[socketId].y -= 2;
+                currentLobby.state[socketId].y -= 1;
             }
         });
 
         socket.on('move down', () => {
             if (currentLobby.state[socketId].y + 2 < process.env.MAP_HEIGHT - process.env.PLAYER_RADIUS) {
-                currentLobby.state[socketId].y += 2;
+                currentLobby.state[socketId].y += 1;
             }
         });
 
