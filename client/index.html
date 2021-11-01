@@ -9,6 +9,7 @@
 </head>
 
 <body>
+    <canvas id="bgLayer" width="1000px" height="1000px" style="position: absolute; z-index: 0;"></canvas>
     <canvas id="worldLayer" width="1000px" height="1000px"
         style="position: absolute; z-index: 1; border-style: solid; border-color: cadetblue;"></canvas>
     <canvas id="playerLayer" width="1000px" height="1000px" style="position: absolute; z-index: 2;"></canvas>
@@ -26,12 +27,11 @@
         const canvasHeight = 200;
         const canvasWidth = 400;
 
+        const bgCanvas = document.getElementById('bgLayer');
         const worldCanvas = document.getElementById('worldLayer');
         const playerCanvas = document.getElementById('playerLayer');
 
-        worldCanvas.width = window.innerWidth;
-        worldCanvas.height = window.innerHeight;
-
+        const bgCtx = bgCanvas.getContext("2d");
         const worldCtx = worldCanvas.getContext("2d");
         const playerCtx = playerCanvas.getContext("2d");
 
@@ -56,6 +56,8 @@
                 }
             }
 
+            bgCanvas.height = newHeight;
+            bgCanvas.width = newWidth;
             worldCanvas.height = newHeight;
             worldCanvas.width = newWidth;
             playerCanvas.height = newHeight;
@@ -64,9 +66,11 @@
             offset.x = (window.innerWidth - worldCanvas.width) / 2;
             offset.y = (window.innerHeight - worldCanvas.height) / 4;
 
+            bgCanvas.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
             worldCanvas.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
             playerCanvas.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
 
+            bgCtx.scale(widthScale, heightScale);
             worldCtx.scale(widthScale, heightScale);
             playerCtx.scale(widthScale, heightScale);
 
@@ -90,27 +94,23 @@
         let playerPos = { x: canvasWidth / 2, y: canvasHeight / 2 };
 
         const bg_x = [0, 200, 400, 600, 800, 1000];
+        bgCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
         const updateBackground = () => {
-            worldCtx.beginPath();
-            worldCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
+            bgCtx.clearRect(0, 0, canvasWidth, canvasHeight);
             for (let i = 0; i < bg_x.length; i++) {
                 const h = bg_x[i];
                 if (h > playerPos.y - canvasHeight / 2 || h < playerPos.y + canvasHeight / 2) {
                     if (h === 0 || h === 1000) {
-                        worldCtx.fillStyle = 'black';
                         worldCtx.fillRect(0, h + middleTracker.y, canvasWidth, 1);
-                        worldCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
                     } else {
-                        worldCtx.fillRect(0, h + middleTracker.y, canvasWidth, 1);
+                        bgCtx.fillRect(0, h + middleTracker.y, canvasWidth, 1);
                     }
                 }
                 if (h > playerPos.x - canvasWidth / 2 || h < playerPos.x + canvasWidth / 2) {
                     if (h === 0 || h === 1000) {
-                        worldCtx.fillStyle = 'black';
                         worldCtx.fillRect(h + middleTracker.x, 0, 1, canvasHeight);
-                        worldCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
                     } else {
-                        worldCtx.fillRect(h + middleTracker.x, 0, 1, canvasHeight);
+                        bgCtx.fillRect(h + middleTracker.x, 0, 1, canvasHeight);
                     }
                 }
             }
@@ -177,8 +177,8 @@
         playerCanvas.addEventListener('mousedown', (e) => {
             mousePressed = true;
             mousePos = {
-                x: Math.round((e.clientX - offset.x)/ widthScale - middleTracker.x),
-                y: Math.round((e.clientY - offset.y)/ heightScale - middleTracker.y)
+                x: Math.round((e.clientX - offset.x) / widthScale - middleTracker.x),
+                y: Math.round((e.clientY - offset.y) / heightScale - middleTracker.y)
             };
             console.log(mousePos);
         })
