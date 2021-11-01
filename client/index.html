@@ -74,6 +74,8 @@
             worldCtx.scale(widthScale, heightScale);
             playerCtx.scale(widthScale, heightScale);
 
+            bgCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
+
             playerCtx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             playerCtx.beginPath();
@@ -94,7 +96,6 @@
         let playerPos = { x: canvasWidth / 2, y: canvasHeight / 2 };
 
         const bg_x = [0, 200, 400, 600, 800, 1000];
-        bgCtx.fillStyle = 'rgba(211, 211, 211, 0.5)';
         const updateBackground = () => {
             bgCtx.clearRect(0, 0, canvasWidth, canvasHeight);
             for (let i = 0; i < bg_x.length; i++) {
