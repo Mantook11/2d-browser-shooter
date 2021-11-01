@@ -9,9 +9,14 @@
 </head>
 
 <body>
+    <ul id="messages">
+    <form style="visibility: hidden;">
+        <input id="input" type="text">
+        <button id="chat-send">Send</button>
+    </form>
     <canvas id="bgLayer" width="1000px" height="1000px" style="position: absolute; z-index: 0;"></canvas>
     <canvas id="worldLayer" width="1000px" height="1000px"
-        style="position: absolute; z-index: 1; border-style: solid; border-color: cadetblue;"></canvas>
+        style="position: absolute; z-index: 1; border-style: solid; border-color: rgba(0, 0, 0, 0.288);"></canvas>
     <canvas id="playerLayer" width="1000px" height="1000px" style="position: absolute; z-index: 2;"></canvas>
     <h3 class="unselectable" style="position: absolute; bottom: 0;">WASD to move. Left click to shoot.</h3>
     <script>
@@ -26,6 +31,10 @@
         const pi2 = Math.PI * 2;
         const canvasHeight = 200;
         const canvasWidth = 400;
+
+        const messages = document.getElementById('messages');
+        const input = document.getElementById('input');
+        const sendButton = document.getElementById('chat-send');
 
         const bgCanvas = document.getElementById('bgLayer');
         const worldCanvas = document.getElementById('worldLayer');
@@ -82,7 +91,7 @@
             playerCtx.fillStyle = 'black';
             playerCtx.moveTo(canvasWidth / 2 + playerRadius, canvasHeight / 2);
             playerCtx.arc(canvasWidth / 2, canvasHeight / 2, playerRadius, 0, pi2);
-            playerCtx.fillText(name, canvasWidth / 2 - 2 * playerRadius, canvasHeight / 2 - 2 * playerRadius);
+            playerCtx.fillText(name, canvasWidth / 2 - name.length * 3, canvasHeight / 2 - playerRadius * 2 );
             playerCtx.fillStyle = 'red';
             playerCtx.stroke();
             playerCtx.fill();
@@ -127,7 +136,7 @@
             middleTracker.y = -(thisPosition.y - canvasHeight / 2);
             worldCtx.clearRect(0, 0, canvasWidth, canvasHeight);
             updatePlayer(states.players, states.socketId);
-            updateShots(states.shots);
+            updateShots(states.shots, states.socketId);
         });
 
         const updatePlayer = (players, socketId) => requestAnimationFrame(() => {
@@ -141,16 +150,30 @@
 
                 worldCtx.moveTo(x + playerRadius, y);
                 worldCtx.arc(x, y, playerRadius, 0, pi2);
-                worldCtx.fillText(p.name, x - 2 * playerRadius - 1.5 * p.name.length, y - 2 * playerRadius);
+                worldCtx.fillText(p.name, x - p.name.length * 3, y - 2 * playerRadius);
             }
             worldCtx.stroke();
             worldCtx.fillStyle = 'red';
             worldCtx.fill();
         });
 
-        const updateShots = (shots) => requestAnimationFrame(() => {
+        const updateShots = (shots, socketId) => requestAnimationFrame(() => {
+            worldCtx.beginPath();
+
+            shots[socketId].forEach(shot => {
+                const x = shot.position.x + middleTracker.x;
+                const y = shot.position.y + middleTracker.y;
+                
+                worldCtx.moveTo(x + bulletRadius, y);
+                worldCtx.arc(x, y, bulletRadius, 0, pi2);
+            });
+            worldCtx.fillStyle = 'red';
+            worldCtx.stroke();
+            worldCtx.fill();
+
             worldCtx.beginPath();
             for (const i in shots) {
+                if(i === socketId) continue;
                 const shotPlayer = shots[i];
                 shotPlayer.forEach(shot => {
                     const x = shot.position.x + middleTracker.x;
@@ -182,7 +205,17 @@
                 y: Math.round((e.clientY - offset.y) / heightScale - middleTracker.y)
             };
             console.log(mousePos);
-        })
+        });
+
+        sendButton.onclick = (e) => {
+            e.preventDefault();
+            const trimmedInput = input.value.trim();
+            if(trimmedInput.length > 0){
+                console.log(trimmedInput);
+                socket.emit('chat message', trimmedInput);
+                input.value = '';
+            }
+        }
 
         socket.on('heartbeat', () => {
             if (mousePressed) {
@@ -195,6 +228,13 @@
                 else if (i === 'a') socket.emit('move left');
                 else if (i === 'd') socket.emit('move right');
             }
+        });
+
+        socket.on('add to chat', (msg) => {
+            console.log(msg);
+            const item = document.createElement('li');
+            item.innerText = msg;
+            messages.append(item);
         });
     </script>
 </body>

@@ -31,7 +31,7 @@ const checkCollisions = (shot, states, socketId) => {
 const CANVAS_WIDTH = Number(process.env.CANVAS_WIDTH);
 const CANVAS_HEIGHT = Number(process.env.CANVAS_HEIGHT);
 const getInsideCanvas = (socketId, shots, states) => {
-  const playerPos = {...states[socketId]};
+  const playerPos = { ...states[socketId] };
   const shotsPruned = {};
   const statesPruned = {};
 
@@ -61,7 +61,7 @@ const getInsideCanvas = (socketId, shots, states) => {
     statesPruned[i] = state;
   }
 
-  return {shotsPruned, statesPruned}
+  return { shotsPruned, statesPruned }
 }
 
 const iterateShots = (shots, states) => {
@@ -87,14 +87,21 @@ const iterateShots = (shots, states) => {
         shot.bounces--;
       }
 
+      const previousShot = { x: shot.position.x, y: shot.position.y }
+
       //Update positions
       shot.position.x += shot.dir.x * shot.x;
       shot.position.y += shot.dir.y * shot.y;
 
+      const distanceMade = Math.hypot(previousShot.x - shot.position.x, previousShot.y - shot.position.y);
+      shot.distance += distanceMade;
+
+
       const collision = checkCollisions(shot, states, i);
-      if (collision) object.splice(index, 1);
+      if (collision) { object.splice(index, 1); return; }
+      if (shot.distance >= Number(process.env.MAX_BULLET_DISTANCE)) { object.splice(index, 1); return; }
     });
   }
 };
 
-module.exports = { initializePlayerCharacter, calculateDir, iterateShots, getInsideCanvas};
+module.exports = { initializePlayerCharacter, calculateDir, iterateShots, getInsideCanvas };

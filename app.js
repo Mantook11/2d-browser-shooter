@@ -8,9 +8,9 @@ const helper = require('./server/helper');
 const Player = require('./server/player');
 const Lobby = require('./server/lobby');
 const game = require('./server/game');
-const {uniqueNamesGenerator, adjectives, animals} = require('unique-names-generator');
-const {Server} = require('socket.io');
-const {v4: uuidv4} = require('uuid');
+const { uniqueNamesGenerator, adjectives, animals } = require('unique-names-generator');
+const { Server } = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
 const io = new Server(server);
 
 const SOCKET_LIST = {};
@@ -24,7 +24,7 @@ const initializeLobbies = () => {
 };
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.get('/', (req, res, next) => {
     const cookies = req.cookies;
@@ -46,10 +46,10 @@ app.post('/', (req, res, next) => {
 
 app.post('/', (req, res) => {
     if (req.body.name) {
-        res.cookie('name', req.body.name, {maxAge: 900000});
+        res.cookie('name', req.body.name.substring(0, 16), { maxAge: 900000 });
     } else {
-        const randomName = uniqueNamesGenerator({dictionaries: [adjectives, animals]}).replace("_", " ");
-        res.cookie('name', randomName, {maxAge: 900000});
+        const randomName = uniqueNamesGenerator({ dictionaries: [adjectives, animals] }).replace("_", " ");
+        res.cookie('name', randomName, { maxAge: 900000 });
     }
     res.sendFile(__dirname + '/client/index.html');
 });
@@ -66,7 +66,7 @@ setInterval(function () {
         game.iterateShots(LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
         for (const j in LOBBY_LIST[i].players) {
             const inside = game.getInsideCanvas(j, LOBBY_LIST[i].shots, LOBBY_LIST[i].state);
-            io.to(j).emit('update state', {socketId: j, players: inside.statesPruned, shots: inside.shotsPruned});
+            io.to(j).emit('update state', { socketId: j, players: inside.statesPruned, shots: inside.shotsPruned });
         }
     }
 }, 10);
@@ -88,16 +88,22 @@ io.on('connection', async (socket) => {
 
         //Update lists
         SOCKET_LIST[socketId] = socket;
-        currentLobby.players[socketId] = new Player(name, socketId, Date.now());
+        currentLobby.players[socketId] = new Player(name, socketId, Date.now(), 500);
         currentLobby.state[socketId] = new helper.State(100, 100, name);
         currentLobby.shots[socketId] = [];
 
         console.log(`${name} connected to lobby ${lobbyId}!`);
 
+        let previousShotTime = 0;
+
         socket.on('action1', (mousePos) => {
-            const initialLocation = {x: currentLobby.state[socketId]['x'], y: currentLobby.state[socketId]['y']};
-            const dir = game.calculateDir(initialLocation, mousePos);
-            currentLobby.shots[socketId].push({position: initialLocation, dir, x: 6, y: 6, bounces: 2});
+            if (Date.now() >= previousShotTime + currentLobby.players[socketId].shotCooldown) {
+                previousShotTime = Date.now();
+                currentLobby.players[socketId].canShoot = false;
+                const initialLocation = { x: currentLobby.state[socketId]['x'], y: currentLobby.state[socketId]['y'] };
+                const dir = game.calculateDir(initialLocation, mousePos);
+                currentLobby.shots[socketId].push({ position: initialLocation, dir, x: 6, y: 6, bounces: 2, distance: 0});
+            }
         });
 
         socket.on('move right', () => {
