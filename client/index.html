@@ -9,11 +9,6 @@
 </head>
 
 <body>
-    <ul id="messages">
-    <form style="visibility: hidden;">
-        <input id="input" type="text">
-        <button id="chat-send">Send</button>
-    </form>
     <canvas id="bgLayer" width="1000px" height="1000px" style="position: absolute; z-index: 0;"></canvas>
     <canvas id="worldLayer" width="1000px" height="1000px"
         style="position: absolute; z-index: 1; border-style: solid; border-color: rgba(0, 0, 0, 0.288);"></canvas>
@@ -32,9 +27,9 @@
         const canvasHeight = 200;
         const canvasWidth = 400;
 
-        const messages = document.getElementById('messages');
-        const input = document.getElementById('input');
-        const sendButton = document.getElementById('chat-send');
+        // const messages = document.getElementById('messages');
+        // const input = document.getElementById('input');
+        // const sendButton = document.getElementById('chat-send');
 
         const bgCanvas = document.getElementById('bgLayer');
         const worldCanvas = document.getElementById('worldLayer');
@@ -207,15 +202,15 @@
             console.log(mousePos);
         });
 
-        sendButton.onclick = (e) => {
-            e.preventDefault();
-            const trimmedInput = input.value.trim();
-            if(trimmedInput.length > 0){
-                console.log(trimmedInput);
-                socket.emit('chat message', trimmedInput);
-                input.value = '';
-            }
-        }
+        // sendButton.onclick = (e) => {
+        //     e.preventDefault();
+        //     const trimmedInput = input.value.trim();
+        //     if(trimmedInput.length > 0){
+        //         console.log(trimmedInput);
+        //         socket.emit('chat message', trimmedInput);
+        //         input.value = '';
+        //     }
+        // }
 
         socket.on('heartbeat', () => {
             if (mousePressed) {
@@ -230,12 +225,12 @@
             }
         });
 
-        socket.on('add to chat', (msg) => {
-            console.log(msg);
-            const item = document.createElement('li');
-            item.innerText = msg;
-            messages.append(item);
-        });
+        // socket.on('add to chat', (msg) => {
+        //     console.log(msg);
+        //     const item = document.createElement('li');
+        //     item.innerText = msg;
+        //     messages.append(item);
+        // });
     </script>
 </body>
 
