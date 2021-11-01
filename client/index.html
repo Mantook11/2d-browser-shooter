@@ -35,6 +35,8 @@
         const worldCtx = worldCanvas.getContext("2d");
         const playerCtx = playerCanvas.getContext("2d");
 
+        const offset = { x: 0, y: 0 };
+
         let heightScale = 1;
         let widthScale = 1;
         const resizeCanvas = () => {
@@ -47,10 +49,10 @@
             if (newHeight * 2 !== newWidth) {
                 if (newHeight > newWidth) {
                     newHeight = newWidth / 2;
-                    heightScale = newHeight/canvasHeight;
+                    heightScale = newHeight / canvasHeight;
                 } else {
                     newWidth = newHeight * 2;
-                    widthScale = newWidth/canvasWidth;
+                    widthScale = newWidth / canvasWidth;
                 }
             }
 
@@ -58,6 +60,12 @@
             worldCanvas.width = newWidth;
             playerCanvas.height = newHeight;
             playerCanvas.width = newWidth;
+
+            offset.x = (window.innerWidth - worldCanvas.width) / 2;
+            offset.y = (window.innerHeight - worldCanvas.height) / 4;
+
+            worldCanvas.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
+            playerCanvas.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
 
             worldCtx.scale(widthScale, heightScale);
             playerCtx.scale(widthScale, heightScale);
@@ -169,8 +177,8 @@
         playerCanvas.addEventListener('mousedown', (e) => {
             mousePressed = true;
             mousePos = {
-                x: Math.round((e.clientX / heightScale - middleTracker.x)),
-                y: Math.round((e.clientY / heightScale - middleTracker.y))
+                x: Math.round((e.clientX - offset.x)/ widthScale - middleTracker.x),
+                y: Math.round((e.clientY - offset.y)/ heightScale - middleTracker.y)
             };
             console.log(mousePos);
         })
