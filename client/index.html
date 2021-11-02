@@ -86,7 +86,7 @@
             playerCtx.fillStyle = 'black';
             playerCtx.moveTo(canvasWidth / 2 + playerRadius, canvasHeight / 2);
             playerCtx.arc(canvasWidth / 2, canvasHeight / 2, playerRadius, 0, pi2);
-            playerCtx.fillText(name, canvasWidth / 2 - name.length * 3, canvasHeight / 2 - playerRadius * 2 );
+            playerCtx.fillText(name, canvasWidth / 2 - name.length * 3, canvasHeight / 2 - playerRadius * 2);
             playerCtx.fillStyle = 'red';
             playerCtx.stroke();
             playerCtx.fill();
@@ -124,17 +124,22 @@
         };
         requestAnimationFrame(updateBackground);
 
+        let socketId = -1;
+        let players = {};
+        let shots = {};
+
         socket.on('update state', (states) => {
             const thisPosition = states.players[states.socketId];
+            socketId = states.socketId;
             playerPos = thisPosition;
             middleTracker.x = -(thisPosition.x - canvasWidth / 2);
             middleTracker.y = -(thisPosition.y - canvasHeight / 2);
             worldCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-            updatePlayer(states.players, states.socketId);
-            updateShots(states.shots, states.socketId);
+            players = states.players;
+            shots = states.shots;
         });
 
-        const updatePlayer = (players, socketId) => requestAnimationFrame(() => {
+        const updatePlayer = () => {
             worldCtx.beginPath();
 
             for (const i in players) {
@@ -150,25 +155,28 @@
             worldCtx.stroke();
             worldCtx.fillStyle = 'red';
             worldCtx.fill();
-        });
+            requestAnimationFrame(updatePlayer);
+        };
+        requestAnimationFrame(updatePlayer);
 
-        const updateShots = (shots, socketId) => requestAnimationFrame(() => {
+        const updateShots = () => {
             worldCtx.beginPath();
 
-            shots[socketId].forEach(shot => {
-                const x = shot.position.x + middleTracker.x;
-                const y = shot.position.y + middleTracker.y;
-                
-                worldCtx.moveTo(x + bulletRadius, y);
-                worldCtx.arc(x, y, bulletRadius, 0, pi2);
-            });
-            worldCtx.fillStyle = 'red';
-            worldCtx.stroke();
-            worldCtx.fill();
+            if (socketId !== -1) {
+                shots[socketId].forEach(shot => {
+                    const x = shot.position.x + middleTracker.x;
+                    const y = shot.position.y + middleTracker.y;
 
+                    worldCtx.moveTo(x + bulletRadius, y);
+                    worldCtx.arc(x, y, bulletRadius, 0, pi2);
+                });
+                worldCtx.fillStyle = 'red';
+                worldCtx.stroke();
+                worldCtx.fill();
+            }
             worldCtx.beginPath();
             for (const i in shots) {
-                if(i === socketId) continue;
+                if (i === socketId) continue;
                 const shotPlayer = shots[i];
                 shotPlayer.forEach(shot => {
                     const x = shot.position.x + middleTracker.x;
@@ -180,7 +188,9 @@
             }
             worldCtx.fillStyle = 'black';
             worldCtx.fill();
-        });
+            requestAnimationFrame(updateShots);
+        };
+        requestAnimationFrame(updateShots);
 
         const keysPressed = {}
         let mousePressed = false;
