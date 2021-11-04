@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://pixijs.download/release/pixi.js"></script>
+    <script src="./cookie.js"></script>
+    <title>Game</title>
+</head>
+
+<body>
+    <h3 class="unselectable" style="position: absolute; bottom: 0;">WASD to move. Left click to shoot.</h3>
+    <script>
+        const socket = io();
+        socket.on('connect', () => {
+            socket.emit('set name', getCookie('name'));
+        });
+
+        const name = getCookie('name');
+        const playerRadius = 6;
+        const bulletRadius = 2;
+        const pi2 = Math.PI * 2;
+        const canvasHeight = 200;
+        const canvasWidth = 400;
+
+        const app = new PIXI.Application({ width: 1000, height: 1000, antialias: true });
+        document.body.appendChild(app.view);
+
+        const playerTemplate = new PIXI.Graphics();
+        playerTemplate.lineStyle(2, 0xFEEB77, 1);
+        playerTemplate.beginFill(0x650A5A, 1);
+        playerTemplate.drawCircle(0, 0, playerRadius);
+        playerTemplate.endFill();
+
+        const bulletTemplate = new PIXI.Graphics();
+        bulletTemplate.beginFill(0x650A5A, 1);
+        bulletTemplate.drawCircle(0, 0, bulletRadius);
+        bulletTemplate.endFill();
+
+        const middleTracker = { x: 0, y: 0 };
+        let playerPos = { x: canvasWidth / 2, y: canvasHeight / 2 };
+        let socketId = -1;
+
+        const players = {};
+        let newPlayerPositions = {};
+        const shots = {};
+        let newShotPositions = {};
+
+        socket.on('update state', (states) => {
+            const thisPosition = states.players[states.socketId];
+            socketId = states.socketId;
+            playerPos = thisPosition;
+            //middleTracker.x = -(thisPosition.x - canvasWidth / 2);
+            //middleTracker.y = -(thisPosition.y - canvasHeight / 2);
+
+            newPlayerPositions = states.players;
+            newShotPositions = states.shots;
+        });
+
+        app.ticker.add((delta) => {
+            for (const i in newPlayerPositions) {
+                const p = newPlayerPositions[i];
+                const x = p.x + middleTracker.x;
+                const y = p.y + middleTracker.y;
+                if (players[i] !== undefined) {
+                    players[i].position.set(x, y)
+                } else {
+                    const newPlayer = new PIXI.Graphics(playerTemplate.geometry);
+                    newPlayer.position.set(x + 200, y + 200);
+                    app.stage.addChild(newPlayer);
+                    players[i] = newPlayer;
+                }
+            }
+
+            for (const i in newShotPositions) {
+                const shotPlayer = newShotPositions[i];
+                shotPlayer.forEach((shot, index) => {
+                    const x = shot.position.x + middleTracker.x;
+                    const y = shot.position.y + middleTracker.y;
+                    if (shots[i] === undefined) {
+                        shots[i] = [];
+                    }
+                    else {
+                        if (shots[i][index] !== undefined) {
+                            shots[i][index].position.set(x, y);
+                        } else {
+                            const newShot = new PIXI.Graphics(bulletTemplate.geometry);
+                            newShot.position.set(x + 200, y + 200);
+                            app.stage.addChild(newShot);
+                            shots[i].push(newShot);
+                        }
+                    }
+                });
+            }
+        });
+
+        const keysPressed = {}
+        let mousePressed = false;
+        let mousePos;
+        document.body.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
+
+        document.body.addEventListener('keyup', (e) => {
+            delete keysPressed[e.key];
+        });
+
+        document.querySelector('canvas').addEventListener('mousedown', (e) => {
+            mousePressed = true;
+            mousePos = {
+                x: Math.round((e.clientX) - middleTracker.x),
+                y: Math.round((e.clientY) - middleTracker.y)
+            };
+            console.log(mousePos);
+        });
+
+        // sendButton.onclick = (e) => {
+        //     e.preventDefault();
+        //     const trimmedInput = input.value.trim();
+        //     if(trimmedInput.length > 0){
+        //         console.log(trimmedInput);
+        //         socket.emit('chat message', trimmedInput);
+        //         input.value = '';
+        //     }
+        // }
+
+        socket.on('heartbeat', () => {
+            if (mousePressed) {
+                mousePressed = false;
+                socket.emit('action1', mousePos);
+            }
+            for (const i in keysPressed) {
+                if (i === 's') socket.emit('move down');
+                else if (i === 'w') socket.emit('move up');
+                else if (i === 'a') socket.emit('move left');
+                else if (i === 'd') socket.emit('move right');
+            }
+        });
+
+        // socket.on('add to chat', (msg) => {
+        //     console.log(msg);
+        //     const item = document.createElement('li');
+        //     item.innerText = msg;
+        //     messages.append(item);
+        // });
+    </script>
+</body>
+
+</html>

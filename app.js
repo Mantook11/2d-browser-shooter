@@ -51,13 +51,13 @@ app.post('/', (req, res) => {
         const randomName = uniqueNamesGenerator({ dictionaries: [adjectives, animals] }).replace("_", " ");
         res.cookie('name', randomName, { maxAge: 900000 });
     }
-    res.sendFile(__dirname + '/client/index.html');
+    res.sendFile(__dirname + '/client/indexpixi.html');
 });
 
 app.use(express.static('client'));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/client/index.html');
+    res.sendFile(__dirname + '/client/indexpixi.html');
 });
 
 setInterval(function () {
